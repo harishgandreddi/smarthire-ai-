@@ -66,7 +66,8 @@ if st.session_state.results:
     names = [r.get("name", "Unknown")[:20] for r in results]
     scores = [r.get("match_score", 0) for r in results]
     fig = px.bar(x=scores, y=names, orientation="h", color=scores,
-        color_continuous_scale="teal", labels={"x": "Match Score", "y": "Candidate"},
+        color_continuous_scale="teal",
+        labels={"x": "Match Score", "y": "Candidate"},
         title="Candidate Match Scores")
     fig.update_layout(height=400, showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
@@ -76,25 +77,43 @@ if st.session_state.results:
         score = r.get("match_score", 0)
         color = "🟢" if score >= 75 else "🟡" if score >= 50 else "🔴"
         rec = r.get("recommendation", "N/A")
+
         with st.expander(f"{color} #{i+1} — {r.get('name','Unknown')} | Score: {score}/100 | {rec}"):
             c1, c2, c3 = st.columns(3)
             c1.metric("Match Score", f"{score}/100")
             c2.metric("Recommendation", rec)
             c3.metric("Email", r.get("email", "N/A"))
-            st.markdown(f"**Summary:** {r.get('summary', '')}")
+
+            st.markdown(f"**📝 Summary:** {r.get('summary', '')}")
+            st.divider()
+
             col_s, col_g = st.columns(2)
             with col_s:
                 st.markdown("**✅ Strengths:**")
                 for s in r.get("strengths", []):
                     st.markdown(f"- {s}")
+
             with col_g:
                 st.markdown("**⚠️ Gaps:**")
                 for g in r.get("gaps", []):
                     st.markdown(f"- {g}")
 
+            missing = r.get("missing_required_skills", [])
+            if missing:
+                st.markdown("**❌ Missing Required Skills:**")
+                for m in missing:
+                    st.markdown(f"- {m}")
+
     st.divider()
-    df = pd.DataFrame([{"Rank": i+1, "Name": r.get("name"), "Email": r.get("email"),
-        "Score": r.get("match_score"), "Recommendation": r.get("recommendation"),
-        "Summary": r.get("summary")} for i, r in enumerate(results)])
+    df = pd.DataFrame([{
+        "Rank": i+1,
+        "Name": r.get("name"),
+        "Email": r.get("email"),
+        "Score": r.get("match_score"),
+        "Recommendation": r.get("recommendation"),
+        "Summary": r.get("summary"),
+        "Missing Skills": ", ".join(r.get("missing_required_skills", []))
+    } for i, r in enumerate(results)])
+
     st.download_button("⬇️ Download Results as CSV", df.to_csv(index=False),
         "smarthire_results.csv", "text/csv", use_container_width=True)

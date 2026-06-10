@@ -1,38 +1,32 @@
-import pdfplumber
+import fitz  # pymupdf
 import re
 import os
 
 def extract_text_from_pdf(file_path: str) -> str:
-    """Extract raw text from a PDF resume."""
     text = ""
-    with pdfplumber.open(file_path) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
+    doc = fitz.open(file_path)
+    for page in doc:
+        text += page.get_text() + "\n"
+    doc.close()
     return text.strip()
 
 def extract_text_from_uploaded(uploaded_file) -> str:
-    """Extract text from Streamlit uploaded file object."""
     import tempfile
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         tmp.write(uploaded_file.read())
         tmp_path = tmp.name
     text = extract_text_from_pdf(tmp_path)
     os.unlink(tmp_path)
+    print(f"\n=== EXTRACTED TEXT ===\n{text[:500]}\n{'='*40}")
     return text
 
 def parse_candidate_info(text: str) -> dict:
-    """Extract basic candidate info using regex patterns."""
     email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
     phone_pattern = r'[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}'
-
     emails = re.findall(email_pattern, text)
     phones = re.findall(phone_pattern, text)
-
-    lines = text.split('\n')
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
     name = lines[0].strip() if lines else "Unknown"
-
     return {
         "name": name,
         "email": emails[0] if emails else "Not found",
